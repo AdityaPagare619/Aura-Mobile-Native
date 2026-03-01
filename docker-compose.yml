@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  aura-builder:
+    build: .
+    volumes:
+      # We mount the host's dist folder so the Docker container drops the compiled 
+      # files right into the host system where Capacitor expects them.
+      - ./dist:/app/dist
