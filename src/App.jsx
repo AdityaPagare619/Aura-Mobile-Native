@@ -212,24 +212,42 @@ const customStyles = `
   }
 `;
 
-import * as THREE from 'three';
-
 export default function AuraMultiPersonaApp() {
   const [activeTab, setActiveTab] = useState('diary');
   const [showInnerVoice, setShowInnerVoice] = useState(false);
   const [shadowOpen, setShadowOpen] = useState(false);
   const [shadowRevealed, setShadowRevealed] = useState(false);
 
+  const [isThreeLoaded, setIsThreeLoaded] = useState(false);
   const containerRef = useRef(null);
   const uniformsRef = useRef(null);
 
   const mode = AURA_MODES[activeTab];
   const tClass = "transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]";
 
+  // Dynamic Three.js Loading - Robust implementation
+  useEffect(() => {
+    if (window.THREE) {
+      setIsThreeLoaded(true);
+      return;
+    }
+    const existingScript = document.getElementById('three-js-script');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => setIsThreeLoaded(true));
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'three-js-script';
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
+    script.onload = () => setIsThreeLoaded(true);
+    document.body.appendChild(script);
+  }, []);
+
   // Initialize 3D Scene
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!isThreeLoaded || !containerRef.current) return;
 
+    const THREE = window.THREE;
     const width = containerRef.current.clientWidth;
     const height = containerRef.current.clientHeight;
 
@@ -290,13 +308,13 @@ export default function AuraMultiPersonaApp() {
       cancelAnimationFrame(animationId);
       renderer.dispose(); innerMat.dispose(); outerMat.dispose(); geometry.dispose();
     };
-  }, []);
+  }, [isThreeLoaded]);
 
   // Interpolate Colors seamlessly on Tab Change
   useEffect(() => {
     if (!uniformsRef.current) return;
-    const targetC1 = new THREE.Color(mode.c1);
-    const targetC2 = new THREE.Color(mode.c2);
+    const targetC1 = new window.THREE.Color(mode.c1);
+    const targetC2 = new window.THREE.Color(mode.c2);
     const targetSpeed = mode.speed;
 
     let lerpId;
@@ -382,293 +400,300 @@ export default function AuraMultiPersonaApp() {
         {/* SCROLLABLE MAIN CONTENT (Flows beautifully over the orb with a gradient mask) */}
         <main className="absolute inset-0 z-20 overflow-y-auto scroll-mask no-scrollbar scroll-smooth pt-[370px] pb-36 px-6">
 
-          {/* --- A: DIARY SCREEN (Home) --- */}
+          {/* --- A: DIARY / PULSE SCREEN (Creative Dashboard) --- */}
           {activeTab === 'diary' && (
-            <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
+            <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
 
-              <div className="glass-card p-6 rounded-[2rem] transform transition-all hover:scale-[1.01]">
-                <div className="flex items-center justify-between mb-5">
-                  <h2 className="text-xs font-mono tracking-[0.15em] uppercase text-slate-500">Current Protocol</h2>
-                  <div className="px-2 py-1 bg-white/50 rounded-md text-[10px] font-bold text-slate-600">ACTIVE</div>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-4 bg-white/60 p-3.5 rounded-2xl border border-white/50 shadow-sm">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 bg-indigo-100 px-2.5 py-1.5 rounded-lg shrink-0">Short</span>
-                    <p className="text-[14px] font-semibold text-slate-700 leading-tight">Make your mornings calmer.</p>
+              {/* Organic Top Insight Node */}
+              <div className="relative group perspective-[1000px]">
+                <div className="glass-card p-6 rounded-[3rem] transform transition-transform duration-700 hover:rotate-x-2 border border-white/80 overflow-hidden">
+                  <div className="absolute top-0 right-0 w-40 h-40 blur-[50px] opacity-40 mix-blend-multiply transition-colors duration-1000" style={{ backgroundColor: mode.c1 }} />
+
+                  <div className="flex items-center justify-between mb-4 relative z-10">
+                    <div className="flex items-center gap-2">
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: mode.c1 }}></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3" style={{ backgroundColor: mode.c1 }}></span>
+                      </span>
+                      <h2 className="text-[11px] font-mono tracking-[0.2em] uppercase text-slate-500 font-bold">Synchronal Pulse</h2>
+                    </div>
+                    <div className="px-3 py-1.5 glass-card rounded-full text-[10px] uppercase font-bold text-slate-700 tracking-wider shadow-sm border-white/60">
+                      Phase: Integration
+                    </div>
                   </div>
-                  <div className="flex items-center gap-4 bg-white/60 p-3.5 rounded-2xl border border-white/50 shadow-sm">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-violet-600 bg-violet-100 px-2.5 py-1.5 rounded-lg shrink-0">Long</span>
-                    <p className="text-[14px] font-semibold text-slate-700 leading-tight">Ship V1 without burning out.</p>
-                  </div>
+
+                  <p className="text-[16px] leading-relaxed font-semibold text-slate-800 relative z-10 w-[90%]">
+                    Your focus metrics show an early peak. I suggest shifting heavy architecture work to the next 90 minutes while cognitive reserves are highest.
+                  </p>
                 </div>
               </div>
 
+              {/* Fluid Calendar / Time Context */}
+              <div className="px-1">
+                <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-4 pt-2 -mx-6 px-6 snap-x">
+                  {[...Array(6)].map((_, i) => {
+                    const isNow = i === 1;
+                    return (
+                      <div key={i} className={`shrink-0 snap-center transition-all duration-500 flex flex-col items-center gap-3 relative ${isNow ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}>
+                        <span className="text-[10px] font-mono uppercase tracking-widest font-bold whitespace-nowrap">
+                          {isNow ? 'NOW' : `+${(i - 1) * 2}H`}
+                        </span>
+                        {/* Organic node replacing standard card */}
+                        <div className={`w-14 h-14 rounded-[2rem] flex items-center justify-center transition-all duration-500 border ${isNow ? 'bg-white shadow-xl scale-125 border-white' : 'glass-card border-white/50 hover:bg-white/80'}`}>
+                          {isNow ? <Zap size={18} style={{ color: mode.c1 }} className="animate-pulse" /> : <div className="w-2 h-2 rounded-full bg-slate-400" />}
+                        </div>
+                        {isNow && (
+                          <div className="absolute -bottom-4 w-1 h-1 rounded-full bg-slate-800" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+
+              {/* Interconnected Priority Nodes */}
               <div>
-                <h2 className="text-xl font-bold tracking-tight mb-4 px-1 text-slate-800 flex items-center gap-2">
-                  Today I learned <span className="text-slate-400 font-normal">...</span>
-                </h2>
-                <div className="flex flex-col gap-3">
-                  <div className="glass-card p-5 rounded-[1.5rem] flex gap-4 items-start group hover:bg-white/70 transition-colors">
-                    <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                    <p className="text-[14px] leading-relaxed font-medium text-slate-700 group-hover:text-slate-900 transition-colors">I noticed you got stressed around 5–7 PM while working on the offline agent idea.</p>
-                  </div>
-                  <div className="glass-card p-5 rounded-[1.5rem] flex gap-4 items-start group hover:bg-white/70 transition-colors">
-                    <div className="w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 bg-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
-                    <p className="text-[14px] leading-relaxed font-medium text-slate-700 group-hover:text-slate-900 transition-colors">You lit up talking about privacy design—this seems very core to your values.</p>
-                  </div>
-                </div>
-              </div>
+                <h3 className="text-[10px] font-mono uppercase tracking-[0.2em] text-slate-400 font-bold mb-6 px-2 flex items-center gap-3">
+                  <span className="w-4 h-[1px] bg-slate-400" /> Active Threads
+                </h3>
 
-              {/* Shadow Thoughts Collapsible */}
-              <div className="glass-dark p-1.5 rounded-[2rem] shadow-xl border border-white/10 overflow-hidden transform transition-all mt-2">
-                <button onClick={() => setShadowOpen(!shadowOpen)} className="w-full p-4 flex justify-between items-center text-white active:opacity-70 transition-opacity">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-indigo-500/20 p-1.5 rounded-full">
-                      <Lock size={16} className="text-indigo-300" />
-                    </div>
-                    <span className="font-semibold text-[15px] tracking-wide">Shadow Thoughts (2)</span>
-                  </div>
-                  <ChevronRight size={18} className={`transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${shadowOpen ? 'rotate-90' : ''}`} />
-                </button>
-
-                <div className={`px-4 overflow-hidden ${tClass} ${shadowOpen ? 'max-h-72 pb-5 opacity-100' : 'max-h-0 opacity-0'}`}>
-                  <p className="text-xs text-white/50 mb-4 ml-1 font-medium tracking-wide">Raw hypotheses. Tap to uncover.</p>
-                  <div className="bg-white/5 p-5 rounded-2xl relative overflow-hidden group border border-white/10 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => setShadowRevealed(true)}>
-                    <p className={`text-[15px] font-medium leading-relaxed transition-all duration-700 ${shadowRevealed ? 'text-white/90 blur-none' : 'text-transparent blur-[6px] select-none'}`}
-                      style={{ textShadow: shadowRevealed ? 'none' : '0 0 16px rgba(255,255,255,0.6)' }}>
-                      "I suspect you procrastinate more when you speak about the backend architecture. Are you anxious about it?"
-                    </p>
-                    {!shadowRevealed && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/90 border border-white/20 bg-black/20 px-4 py-2 rounded-full backdrop-blur-md shadow-xl">Reveal</span>
-                      </div>
-                    )}
-                    {shadowRevealed && (
-                      <div className="mt-5 flex gap-3 animate-in fade-in duration-500 slide-in-from-bottom-2">
-                        <button className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors border border-white/5">
-                          <CheckCircle2 size={16} className="text-emerald-400" /> Accurate
-                        </button>
-                        <button className="flex-1 bg-white/5 hover:bg-white/10 text-white py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-colors border border-white/5">
-                          <XCircle size={16} className="text-rose-400" /> Wrong
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Timeline Indicator */}
-              <div className="flex justify-between items-center px-4 py-6 mt-2 opacity-50">
-                <span className="text-[10px] font-mono uppercase tracking-[0.2em] font-bold">W1</span>
-                <span className="flex-1 h-px bg-slate-400/50 mx-4" />
-                <span className="text-[10px] font-mono uppercase tracking-[0.2em]">1M</span>
-                <span className="flex-1 h-px bg-slate-400/50 mx-4" />
-                <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-indigo-600 font-bold">NOW</span>
-              </div>
-            </div>
-          )}
-
-          {/* --- B: FLOW SCREEN (Work/Tasks) --- */}
-          {activeTab === 'flow' && (
-            <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-
-              <div>
-                <h2 className="text-xl font-bold tracking-tight mb-4 px-1 text-slate-800">Energy Topology</h2>
-                <div className="flex gap-3">
-                  <div className="flex-1 glass-card p-4 rounded-3xl flex flex-col items-center gap-2 active:scale-95 transition-transform bg-white/80 border-white">
-                    <Sun size={20} className="text-amber-500" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">Deep Work</span>
-                  </div>
-                  <div className="flex-1 glass-card p-4 rounded-3xl flex flex-col items-center gap-2 active:scale-95 transition-transform border-white/60">
-                    <Coffee size={20} className="text-teal-600" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Catch Up</span>
-                  </div>
-                  <div className="flex-1 glass-card p-4 rounded-3xl flex flex-col items-center gap-2 active:scale-95 transition-transform opacity-60">
-                    <Moon size={20} className="text-indigo-400" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Wind Down</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="glass-card p-6 rounded-[2rem] relative">
-                <div className="relative pl-8 flex flex-col gap-8">
-                  {/* Vertical connecting line */}
-                  <div className="absolute left-[5px] top-2 bottom-4 w-px bg-gradient-to-b from-slate-300 via-teal-400 to-blue-500" />
-
-                  {/* Timeline Item 1 */}
-                  <div className="relative">
-                    <div className="absolute -left-[32px] top-1 w-3.5 h-3.5 rounded-full bg-slate-200 border-2 border-white shadow-sm" />
-                    <div>
-                      <p className="text-[11px] font-mono text-slate-400 mb-1 tracking-wider">09:00 AM</p>
-                      <p className="text-[15px] font-medium text-slate-500 line-through">Morning Sync</p>
-                    </div>
-                  </div>
-
-                  {/* Timeline Item 2 (Active) */}
-                  <div className="relative">
-                    <div className="absolute -left-[32px] top-3 w-3.5 h-3.5 rounded-full bg-teal-400 border-2 border-white shadow-sm ring-4 ring-teal-100/50" />
-                    <div className="bg-white/80 p-4 rounded-2xl border border-white shadow-sm">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
-                        <p className="text-[10px] font-mono text-teal-600 font-bold tracking-[0.15em]">NOW</p>
-                      </div>
-                      <p className="text-[15px] font-bold text-slate-800">Focus Block: V1 Spec</p>
-                    </div>
-                  </div>
-
-                  {/* Timeline Item 3 (Injected) */}
-                  <div className="relative">
-                    <div className="absolute -left-[32px] top-1 w-3.5 h-3.5 rounded-full bg-blue-500 border-2 border-white shadow-sm" />
-                    <div>
-                      <p className="text-[10px] font-mono text-blue-600 mb-1 font-bold tracking-[0.15em]">AURA INTERVENTION</p>
-                      <p className="text-[15px] font-medium text-slate-700">20-min Screen Break / Stretch</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500 mb-4 px-2">Task Lane</h3>
-                <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-6 px-6 snap-x">
-                  <div className="w-40 shrink-0 snap-center glass-card p-5 rounded-[2rem] flex flex-col gap-3 opacity-70">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Inbox (3)</span>
-                    <div className="h-14 bg-white/40 rounded-xl border border-white/20" />
-                    <div className="h-14 bg-white/40 rounded-xl border border-white/20" />
-                  </div>
-                  <div className="w-44 shrink-0 snap-center glass-card p-5 rounded-[2rem] flex flex-col gap-3 ring-1 ring-teal-200 bg-white/80 shadow-md transform scale-[1.02]">
-                    <span className="text-[11px] font-bold text-teal-600 uppercase tracking-wider">In Progress</span>
-                    <div className="h-20 bg-white rounded-xl border border-teal-100 p-3 shadow-sm flex flex-col justify-end">
-                      <div className="w-full bg-slate-100 rounded-full h-2">
-                        <div className="bg-teal-400 h-2 rounded-full w-[65%]" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="w-40 shrink-0 snap-center glass-card p-5 rounded-[2rem] flex flex-col gap-3 opacity-60">
-                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Done Today</span>
-                    <div className="h-10 bg-white/40 rounded-xl flex items-center px-3 border border-white/20">
-                      <CheckSquare size={14} className="text-emerald-500" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* --- C: MIND SCREEN (Mind Map / Trust) --- */}
-          {activeTab === 'mind' && (
-            <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-6 duration-700 items-center pt-2">
-
-              <div className="w-full glass-card p-6 rounded-[2rem] flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-slate-800 text-lg tracking-tight">Understanding Level</h3>
-                  <p className="text-[13px] text-slate-500 mt-1 font-medium">Tap nodes to correct drift</p>
-                </div>
-                <div className="relative w-16 h-16 flex items-center justify-center">
-                  <svg className="w-full h-full transform -rotate-90 drop-shadow-sm">
-                    <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="6" />
-                    <circle cx="32" cy="32" r="28" fill="none" stroke={mode.c1} strokeWidth="6" strokeDasharray="175" strokeDashoffset="52" className="transition-all duration-1000 ease-out" strokeLinecap="round" />
+                <div className="relative pl-6 flex flex-col gap-5">
+                  {/* Serpentine Connecting Line */}
+                  <svg className="absolute left-[8px] top-6 bottom-6 w-12 pointer-events-none opacity-30" preserveAspectRatio="none">
+                    <path d="M 0 0 C 20 50, -20 100, 0 150 C 20 200, -20 250, 0 300" fill="transparent" stroke="url(#arc-gradient)" strokeWidth="2" strokeDasharray="6 6" className="animate-[dash_60s_linear_infinite]" />
+                    <defs>
+                      <linearGradient id="arc-gradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={mode.c1} />
+                        <stop offset="100%" stopColor={mode.c2} />
+                      </linearGradient>
+                    </defs>
                   </svg>
-                  <span className="absolute font-bold text-[15px] text-slate-800 tracking-tighter">7/10</span>
-                </div>
-              </div>
 
-              {/* Responsive Simulated Bubble Map */}
-              <div className="relative w-full h-[320px] flex items-center justify-center">
-
-                {/* Center Node */}
-                <div className="absolute w-36 h-36 glass-card rounded-full flex flex-col items-center justify-center shadow-xl ring-4 ring-emerald-100/50 z-20 active:scale-95 transition-all cursor-pointer hover:bg-white/80 group">
-                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                    <Brain size={24} className="text-emerald-600" />
+                  {/* High Priority Node */}
+                  <div className="glass-card p-4 rounded-[100px] border border-white/90 shadow-lg flex items-center gap-4 relative z-10 transform hover:scale-[1.02] transition-transform cursor-pointer bg-white/70">
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 border-2" style={{ borderColor: mode.c1, backgroundColor: `${mode.c1}15` }}>
+                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: mode.c1 }} />
+                    </div>
+                    <div className="flex-1 min-w-0 pr-4">
+                      <p className="font-bold text-[15px] text-slate-800 truncate">V2 System Architecture</p>
+                      <p className="text-[12px] text-slate-500 font-medium truncate mt-0.5">Deep block • Requires 100% focus</p>
+                    </div>
                   </div>
-                  <span className="font-bold text-[15px] text-slate-800">Career</span>
-                </div>
 
-                {/* Orbiting Nodes */}
-                <div className="absolute top-[10%] left-[10%] w-24 h-24 glass-card rounded-full flex flex-col items-center justify-center opacity-90 z-10 hover:opacity-100 hover:scale-105 transition-all cursor-pointer">
-                  <span className="font-semibold text-[13px] text-slate-700">Health</span>
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 mt-1.5 shadow-[0_0_8px_#34d399]" />
-                </div>
+                  {/* Standard Node */}
+                  <div className="glass-card p-4 rounded-[100px] border border-white/50 shadow-sm flex items-center gap-4 relative z-10 transform hover:scale-[1.02] transition-transform cursor-pointer ml-4">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 border-slate-300">
+                    </div>
+                    <div className="flex-1 min-w-0 pr-4">
+                      <p className="font-semibold text-[14px] text-slate-700 truncate">Finalize PR #402</p>
+                    </div>
+                  </div>
 
-                <div className="absolute bottom-[5%] right-[10%] w-20 h-20 glass-card rounded-full flex flex-col items-center justify-center opacity-80 z-10 hover:opacity-100 hover:scale-105 transition-all cursor-pointer">
-                  <span className="font-semibold text-[12px] text-slate-700">Social</span>
+                  {/* Automated Node */}
+                  <div className="glass-card p-4 rounded-[100px] border border-white/30 shadow-sm flex items-center gap-4 relative z-10 ml-8 opacity-70">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-slate-200">
+                      <Zap size={12} className="text-slate-500" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-[13px] text-slate-600 truncate flex items-center gap-2">
+                        Updating dependencies <span className="text-[9px] uppercase tracking-wider bg-slate-200 px-2 py-0.5 rounded-full">Auto</span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
-
-                <div className="absolute top-[15%] right-[5%] w-16 h-16 glass-card rounded-full flex flex-col items-center justify-center opacity-60 z-10 hover:opacity-100 hover:scale-105 transition-all cursor-pointer">
-                  <span className="font-semibold text-[11px] text-slate-700">Money</span>
-                </div>
-
-                {/* Decorative connecting lines (SVG) */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" style={{ zIndex: 0 }}>
-                  <line x1="50%" y1="50%" x2="25%" y2="25%" stroke={mode.c1} strokeWidth="2" strokeDasharray="4 4" />
-                  <line x1="50%" y1="50%" x2="80%" y2="80%" stroke={mode.c1} strokeWidth="2" strokeDasharray="4 4" />
-                  <line x1="50%" y1="50%" x2="85%" y2="25%" stroke={mode.c1} strokeWidth="1" strokeDasharray="4 4" />
-                </svg>
               </div>
 
-              <p className="text-[13px] text-center text-slate-500 px-8 font-medium leading-relaxed bg-white/40 py-3 rounded-2xl backdrop-blur-md">
-                This is my current mental model of your life vectors. Size equals attention weight.
-              </p>
             </div>
           )}
 
-          {/* --- D: CREW SCREEN (Agents) --- */}
-          {activeTab === 'crew' && (
-            <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-              <div className="flex items-end justify-between px-1 mb-2">
-                <h2 className="text-xl font-bold tracking-tight text-slate-800">Background Agents</h2>
-                <span className="text-[10px] font-bold tracking-[0.2em] text-slate-400 uppercase">4 Deployed</span>
+          {/* --- B: FLOW SCREEN (Temporal / Spatial Tasks) --- */}
+          {activeTab === 'flow' && (
+            <div className="flex flex-col gap-10 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+
+              {/* Radial Energy Gauge instead of standard cards */}
+              <div className="flex flex-col items-center mt-4 relative">
+                <div className="absolute w-[200px] h-[200px] rounded-full blur-[40px] opacity-30 mix-blend-multiply" style={{ backgroundColor: mode.c2 }} />
+
+                <div className="relative w-48 h-48">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle cx="96" cy="96" r="88" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="4" />
+                    {/* Ghost track */}
+                    <circle cx="96" cy="96" r="72" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="12" />
+                    {/* Active track */}
+                    <circle cx="96" cy="96" r="72" fill="none" stroke={mode.c1} strokeWidth="12" strokeDasharray="452" strokeDashoffset="120" strokeLinecap="round" className="transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]" />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <Activity size={24} style={{ color: mode.c1 }} className="mb-1" />
+                    <span className="text-3xl font-bold tracking-tighter text-slate-800">74%</span>
+                    <span className="text-[9px] font-mono uppercase tracking-[0.2em] text-slate-500 font-bold mt-1">Cognitive Load</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Active Agent 1 */}
-                <div className="glass-dark p-5 rounded-[2rem] flex flex-col gap-4 relative overflow-hidden group transform hover:-translate-y-1 transition-transform border border-white/10 shadow-lg">
-                  <div className="absolute -top-10 -right-10 w-32 h-32 blur-[40px] opacity-40 transition-colors duration-1000" style={{ backgroundColor: mode.c1 }} />
-                  <div className="flex justify-between items-start relative z-10">
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm"><Shield size={18} className="text-white" /></div>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_#34d399] mt-1" />
+              {/* Horizontal Spatial Timeline */}
+              <div className="w-full">
+                <div className="flex items-center justify-between mb-6 px-4">
+                  <h3 className="text-lg font-bold text-slate-800 tracking-tight">Temporal Flow</h3>
+                  <button className="glass-card w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform">
+                    <ChevronRight size={16} className="text-slate-600" />
+                  </button>
+                </div>
+
+                <div className="relative h-40 w-full overflow-hidden">
+                  {/* Continuous fluid bar */}
+                  <div className="absolute top-1/2 -translate-y-1/2 left-0 w-[150%] h-16 bg-white/40 rounded-full border border-white/60 shadow-inner flex items-center pr-12 pointer-events-none">
+                    {/* Completed section */}
+                    <div className="h-full rounded-full bg-slate-200/50 w-[30%] backdrop-blur-md relative overflow-hidden">
+                      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMGg0MHY0MEgwaHoiIGZpbGw9Im5vbmUiLz48cGF0aCBkPSJNMCAuNWg0MG0tNDAgMzlhLjUuNSAwIDAgMCAwIDFWMG0wIDM5LjVoNDAiIHN0cm9rZT0icmdiYSgwLDAsMCwwLjA1KSIvPjwvc3ZnPg==')] opacity-50" />
+                    </div>
                   </div>
-                  <div className="relative z-10 mt-1">
-                    <h4 className="text-[15px] font-bold text-white tracking-wide">Focus Guardian</h4>
-                    <p className="text-[11px] text-white/60 mt-1.5 leading-relaxed font-medium">Intercepting non-urgent pings until 12 PM.</p>
+
+                  {/* Floating timeline events */}
+                  <div className="absolute top-1/2 -translate-y-1/2 left-[10%] glass-card px-4 py-2 rounded-2xl shadow-lg border-white border text-[13px] font-semibold text-slate-700 flex items-center gap-2 transform -translate-y-12">
+                    <CheckCircle2 size={14} className="text-slate-400" /> Standup
+                  </div>
+
+                  <div className="absolute top-1/2 -translate-y-1/2 left-[35%] w-32 glass-card py-2 px-4 rounded-2xl shadow-xl border-white border relative transform scale-110 z-10" style={{ boxShadow: `0 10px 30px -10px ${mode.c1}40` }}>
+                    <div className="absolute -top-1.5 -right-1.5 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: mode.c1 }}></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3" style={{ backgroundColor: mode.c1 }}></span>
+                    </div>
+                    <p className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest mb-1">In Progress</p>
+                    <p className="text-[14px] font-bold text-slate-800 leading-tight">Architecture Review</p>
+                  </div>
+
+                  <div className="absolute top-1/2 -translate-y-1/2 left-[70%] glass-card px-4 py-2 rounded-2xl border border-white/40 shadow-sm text-[13px] font-semibold text-slate-500 opacity-60 transform translate-y-10">
+                    Design Sync
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* --- C: MIND SCREEN (Organic Mind Map) --- */}
+          {activeTab === 'mind' && (
+            <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 items-center pt-8">
+
+              <div className="text-center mb-8">
+                <h3 className="font-bold text-slate-800 text-2xl tracking-tight">Cognitive State</h3>
+                <p className="text-[13px] text-slate-500 mt-2 font-medium">Model alignment: 94%</p>
+              </div>
+
+              {/* Orbital 3D-like layout */}
+              <div className="relative w-full h-[360px] flex items-center justify-center transform-gpu">
+                {/* Orbit Rings */}
+                <div className="absolute w-[280px] h-[70px] border border-slate-300 rounded-[100%] transform -rotate-12 opacity-40"></div>
+                <div className="absolute w-[340px] h-[90px] border border-slate-300 rounded-[100%] transform rotate-12 opacity-30"></div>
+
+                {/* Central Core Concept */}
+                <div className="absolute w-28 h-28 rounded-full flex flex-col items-center justify-center z-30 shadow-[0_20px_50px_rgba(0,0,0,0.15)] bg-white/90 backdrop-blur-xl border border-white transform hover:scale-110 transition-transform cursor-pointer group">
+                  <div className="absolute inset-0 rounded-full blur-[20px] mix-blend-multiply opacity-30" style={{ backgroundColor: mode.c1 }} />
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center mb-1 relative z-10" style={{ backgroundColor: `${mode.c1}15` }}>
+                    <Brain size={20} style={{ color: mode.c1 }} className="group-hover:scale-110 transition-transform" />
+                  </div>
+                  <span className="font-bold text-[14px] text-slate-800 relative z-10">Identity</span>
+                </div>
+
+                {/* Orbiting Satellite 1 */}
+                <div className="absolute top-[15%] right-[15%] z-20 hover:z-40">
+                  <div className="glass-card w-20 h-20 rounded-[2rem] flex flex-col items-center justify-center shadow-lg border-white/80 hover:scale-110 transition-all cursor-pointer transform rotate-6">
+                    <span className="font-bold text-[12px] text-slate-700">Creation</span>
+                    <div className="w-1.5 h-1.5 rounded-full mt-2" style={{ backgroundColor: mode.c2, boxShadow: `0 0 10px ${mode.c2}` }} />
                   </div>
                 </div>
 
-                {/* Active Background Agent 2 */}
-                <div className="glass-dark p-5 rounded-[2rem] flex flex-col gap-4 relative overflow-hidden group transform hover:-translate-y-1 transition-transform border border-white/10 shadow-lg">
-                  <div className="absolute -bottom-10 -left-10 w-32 h-32 blur-[40px] opacity-30 transition-colors duration-1000" style={{ backgroundColor: mode.c2 }} />
-                  <div className="flex justify-between items-start relative z-10">
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm"><Layers size={18} className="text-white" /></div>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_12px_#34d399] mt-1" />
-                  </div>
-                  <div className="relative z-10 mt-1">
-                    <h4 className="text-[15px] font-bold text-white tracking-wide">Inbox Sweeper</h4>
-                    <p className="text-[11px] text-white/60 mt-1.5 leading-relaxed font-medium">Sorted 14 threads into 'Read Later'.</p>
+                {/* Orbiting Satellite 2 */}
+                <div className="absolute bottom-[20%] left-[10%] z-40 hover:z-50">
+                  <div className="bg-white/95 w-24 h-24 rounded-full flex flex-col items-center justify-center shadow-xl border border-white hover:scale-110 transition-all cursor-pointer transform -rotate-6">
+                    <span className="font-bold text-[14px] text-slate-800">Health</span>
+                    <span className="text-[9px] font-mono text-slate-400 mt-1 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded-full">Focus</span>
                   </div>
                 </div>
 
-                {/* Paused Agent */}
-                <div className="glass-dark p-5 rounded-[2rem] flex flex-col gap-4 opacity-50 grayscale-[50%]">
-                  <div className="flex justify-between items-start">
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><MessageSquare size={18} className="text-white" /></div>
-                    <span className="px-2.5 py-1 rounded-full border border-white/20 text-[9px] font-mono text-white/60 uppercase tracking-widest mt-1">Paused</span>
+                {/* Orbiting Satellite 3 */}
+                <div className="absolute top-[40%] left-[5%] z-10 hover:z-40">
+                  <div className="glass-card w-16 h-16 rounded-full flex flex-col items-center justify-center shadow-sm opacity-60 hover:opacity-100 hover:scale-110 transition-all cursor-pointer border-white/40">
+                    <span className="font-bold text-[11px] text-slate-600">Rest</span>
                   </div>
-                  <div className="mt-1">
-                    <h4 className="text-[15px] font-bold text-white tracking-wide">Social Prod.</h4>
-                    <p className="text-[11px] text-white/60 mt-1.5 leading-relaxed font-medium">Awaiting manual approval for drafts.</p>
+                </div>
+              </div>
+
+              <div className="glass-card px-8 py-5 rounded-[2rem] border-white/60 mx-4 mt-4">
+                <p className="text-[14px] text-center text-slate-700 font-medium leading-relaxed">
+                  Your "Health" vector is drawing the most energy today. I've adjusted your task suggestions accordingly.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* --- D: CREW SCREEN (Non-standard Agents View) --- */}
+          {activeTab === 'crew' && (
+            <div className="flex flex-col gap-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 mt-4">
+              <div className="flex items-center justify-center">
+                <div className="glass-card px-6 py-3 rounded-full border border-white flex items-center gap-3 shadow-lg">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: mode.c1 }}></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: mode.c1 }}></span>
+                  </span>
+                  <span className="text-[12px] font-mono font-bold tracking-[0.2em] text-slate-600 uppercase">Swarm Status: Nominal</span>
+                </div>
+              </div>
+
+              <div className="relative pl-6 pr-2">
+                {/* Connecting backbone line */}
+                <div className="absolute left-[34px] top-6 bottom-6 w-1 bg-gradient-to-b from-slate-200 via-rose-200 to-transparent rounded-full" />
+
+                {/* Active Agent - Floating Focus */}
+                <div className="relative mb-12 transform hover:translate-x-2 transition-transform cursor-pointer">
+                  {/* Decorative orbital ring around icon */}
+                  <div className="absolute -left-[14px] top-0 w-16 h-16 border rounded-full border-rose-300 pointer-events-none animate-[spin_10s_linear_infinite]" />
+
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl border border-rose-100 relative z-10 ml-[-6px]">
+                    <Shield size={20} className="text-rose-500" />
+                  </div>
+
+                  <div className="pl-12 absolute top-1 left-4 w-full">
+                    <div className="glass-card p-5 rounded-[2rem] border-white/80 bg-white/50 shadow-sm ml-2">
+                      <h4 className="text-[16px] font-bold text-slate-800 tracking-tight">Focus Guardian</h4>
+                      <p className="text-[13px] text-slate-600 mt-1 leading-relaxed font-medium">Intercepting all non-urgent pings until 12:00 PM to protect deep block.</p>
+                      <div className="mt-4 flex gap-2">
+                        <span className="px-3 py-1 bg-white/80 rounded-full border border-white text-[10px] font-bold text-slate-500 uppercase tracking-widest shadow-sm">Config</span>
+                        <span className="px-3 py-1 bg-rose-50 text-rose-600 rounded-full border border-rose-100 text-[10px] font-bold uppercase tracking-widest">Active</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active Agent - Sweeper */}
+                <div className="relative mb-12 transform hover:translate-x-2 transition-transform cursor-pointer pt-20">
+                  <div className="absolute -left-[6px] top-26 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg border border-teal-100 relative z-10">
+                    <Layers size={18} className="text-teal-500" />
+                  </div>
+
+                  <div className="pl-12 absolute top-24 left-4 w-full">
+                    <div className="glass-card p-5 rounded-[2rem] border-white/60 shadow-sm ml-2">
+                      <h4 className="text-[15px] font-bold text-slate-800 tracking-tight">Inbox Sweeper</h4>
+                      <p className="text-[12px] text-slate-500 mt-1 leading-relaxed font-medium">Sorted 14 threads into 'Read Later'.</p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Sleeping Agent */}
-                <div className="glass-dark p-5 rounded-[2rem] flex flex-col gap-4 opacity-40 grayscale-[50%]">
-                  <div className="flex justify-between items-start">
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center"><Dumbbell size={18} className="text-white" /></div>
-                    <span className="px-2.5 py-1 rounded-full border border-white/20 text-[9px] font-mono text-white/60 uppercase tracking-widest mt-1">Sleep</span>
+                <div className="relative pt-20 opacity-50 transform hover:translate-x-2 transition-transform cursor-pointer grayscale-[30%]">
+                  <div className="absolute -left-[2px] top-26 w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center shadow-inner relative z-10">
+                    <Dumbbell size={16} className="text-slate-400" />
                   </div>
-                  <div className="mt-1">
-                    <h4 className="text-[15px] font-bold text-white tracking-wide">Fit Scout</h4>
-                    <p className="text-[11px] text-white/60 mt-1.5 leading-relaxed font-medium">Resumes tracking at 06:00 AM.</p>
+
+                  <div className="pl-10 absolute top-24 left-4 w-full">
+                    <div className="bg-transparent px-5 py-2 ml-2">
+                      <h4 className="text-[14px] font-bold text-slate-600 tracking-tight flex items-center gap-2">Fit Scout <span className="w-1.5 h-1.5 rounded-full bg-slate-300" /></h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed font-medium tracking-wide">Sleeping until 06:00 AM.</p>
+                    </div>
                   </div>
                 </div>
+
               </div>
             </div>
           )}
